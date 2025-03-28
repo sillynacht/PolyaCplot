@@ -82,5 +82,21 @@ def test_2(
     plt.show()
 
 
+def test_3():
+    z = sp.symbols('z')
+    f_expr = z ** 2
+
+    fig, ax = plt.subplots()
+
+    x_range = (-5, 5)
+    y_range = (-5, 5)
+
+    pc.deformedCoordinateGrid(f_expr, z, ax, x_range=x_range, y_range=y_range, density=25)
+
+    pc.streamplot(f_expr, z, ax, x_range=x_range, y_range=y_range)
+
+    plt.show()
+
+
 if __name__ == '__main__':
-    test_1()
+    test_3()

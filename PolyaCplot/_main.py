@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 
-def gridForImage(
+def grid(
         x_range: tuple[float, float],
         y_range: tuple[float, float],
         density: int | tuple[int, int]
@@ -18,23 +18,35 @@ def gridForImage(
     :param x_range: Range of x-axis values.
     :param y_range: Range of y-axis values.
     :param density: Number of grid points per axis for vector field.
+
     :return: grid coordinates for real and imaginary parts.
     """
     x_min, x_max = x_range
     y_min, y_max = y_range
 
-    x = np.linspace(x_min, x_max, density, endpoint=True, retstep=False, dtype=None, axis=0)
-    y = np.linspace(y_min, y_max, density, endpoint=True, retstep=False, dtype=None, axis=0)
+    step_x = (x_max - x_min) / density
+    step_y = (y_max - y_min) / density
+
+    x = np.linspace(x_min - step_x / 2, x_max + step_x / 2, density, endpoint=True, retstep=False, dtype=None, axis=0)
+    y = np.linspace(y_min - step_y / 2, y_max + step_x / 2, density, endpoint=True, retstep=False, dtype=None, axis=0)
 
     X, Y = np.meshgrid(x, y, indexing='xy', sparse=False, copy=True)
 
     return X, Y
 
 
-def getFunc(
+def get_func(
         f_expr: Union[sp.Expr, Callable[[np.ndarray], np.ndarray]],
         z: sp.Symbol
 ) -> Callable:
+    """
+    get a function
+
+    :param f_expr: Expression representing the complex function f(z).
+    :param z: Symbol representing the complex variable z.
+
+    :return: function
+    """
     if callable(f_expr):
         return f_expr
     else:
@@ -66,10 +78,10 @@ def vectorplot(
     if ax is None:
         ax = plt.gca()
 
-    X, Y = gridForImage(x_range, y_range, density)
+    X, Y = grid(x_range, y_range, density)
     Z = X + Y * 1j
 
-    func = getFunc(f_expr, z)
+    func = get_func(f_expr, z)
     result = func(Z)
 
     u, v = result.real, -result.imag
@@ -91,7 +103,7 @@ def vectorplot(
 
 
 def streamplot(
-        f_expr: sp.Expr,
+        f_expr: sp.Expr | Callable[[np.ndarray], np.ndarray],
         z: sp.Symbol,
         ax: Optional[plt.Axes] = None,
         x_range: tuple[float, float] = (-1, 1),
@@ -100,7 +112,7 @@ def streamplot(
         streamline_density: tuple[int, int] | int = (2, 2),
         colormap: str = "plasma",
         streamplot_kwargs: dict = None
-):
+) -> None:
     """
     Plots the streamplot for a complex function f(z) by Polya vector field.
 
@@ -117,10 +129,10 @@ def streamplot(
     if ax is None:
         ax = plt.gca()
 
-    X, Y = gridForImage(x_range, y_range, density)
+    X, Y = grid(x_range, y_range, density)
     Z = X + Y * 1j
 
-    func = sp.lambdify(z, f_expr)
+    func = get_func(f_expr, z)
     result = func(Z)
 
     u, v = result.real, -result.imag
@@ -143,7 +155,7 @@ def zeros(
         x_range: tuple[float, float] = (-1, 1),
         y_range: tuple[float, float] = (-1, 1),
         scatter_kwargs: dict = None
-):
+) -> None:
     """
     highlights zeros in the plot
 
@@ -191,7 +203,7 @@ def poles(
         x_range: tuple[float, float] = (-1, 1),
         y_range: tuple[float, float] = (-1, 1),
         scatter_kwargs: dict = None
-):
+) -> None:
     """
     highlights poles in the plot
 
@@ -233,31 +245,43 @@ def poles(
         ax.scatter(poles_re, poles_im, label="Poles", **scatter_kwargs)
 
 
-# def deformedCoordinateGrid(
-#         f_expr,
-#         z,
-#         ax: Optional[plt.Axes] = None,
-#         x_range: tuple[float, float] = (-5, 5),
-#         y_range: tuple[float, float] = (-5, 5),
-#         density: int = 30,
-#         grid_levels: int = 10
-# ):
-#     '''
-#     Deforms the coordinate grid according to the function f(z) = f(x + iy) = u(x, y) + iv(x, y).
-#     '''
-#     if ax is None:
-#         ax = plt.gca()
+def grid_deformation(
+        f_expr : sp.Expr | Callable[[np.ndarray], np.ndarray],
+        z : sp.Symbol,
+        ax: Optional[plt.Axes] = None,
+        x_range: tuple[float, float] = (-1, 1),
+        y_range: tuple[float, float] = (-1, 1),
+        density: int = 25
+) -> None:
+    '''
+    Deforms the coordinate grid by the function f(z) and plots it
 
-#     X, Y = gridForImage(x_range, y_range, density)
-#     Z = X + Y * 1j
+    :param f_expr: Expression representing the complex function f(z).
+    :param z: Symbol representing the complex variable z.
+    :param ax: Axes that used to construct a plot.
+    :param x_range: Range of x-axis values, default is (-1, 1).
+    :param y_range: Range of y-axis values, default is (-1, 1).
+    :param density: Density of the grid, default is 25.
+    '''
+    if ax is None:
+        ax = plt.gca()
 
-#     func = sp.lambdify(z, f_expr)
-#     result = func(Z)
+    X, Y = grid(x_range, y_range, density)
+    Z = X + Y * 1j
 
-#     u, v = result.real, -result.imag
+    func = sp.lambdify(z, f_expr)
+    result = func(Z)
 
-#     levels_real = np.linspace(np.min(u), np.max(u), grid_levels)
-#     levels_imag = np.linspace(np.min(v), np.max(v), grid_levels)
+    u, v = result.real, -result.imag
 
-#     ax.contour(X, Y, u, levels=levels_real, colors='grey', linestyles='solid')
-#     ax.contour(X, Y, v, levels=levels_imag, colors='grey', linestyles='solid')
+    levels_real = np.linspace(np.min(X), np.max(X), density)
+    levels_imag = np.linspace(np.min(Y), np.max(Y), density)
+
+    ax.contour(u, v, X, levels=levels_real, colors='grey', linestyles='solid', alpha=0.3)
+    ax.contour(u, v, Y, levels=levels_imag, colors='grey', linestyles='solid', alpha=0.3)
+
+    x_min, x_max = max(np.min(X), np.min(u)), min(np.max(X), np.max(u))
+    y_min, y_max = max(np.min(Y), np.min(-v)), min(np.max(Y), np.max(-v))
+
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
