@@ -37,7 +37,7 @@ def grid(
 
 def get_func(
         f_expr: Union[sp.Expr, Callable[[np.ndarray], np.ndarray]],
-        z: sp.Symbol
+        z: sp.Symbol = None
 ) -> Callable:
     """
     get a function
@@ -55,12 +55,13 @@ def get_func(
 
 def vectorplot(
         f_expr: sp.Expr | Callable[[np.ndarray], np.ndarray],
-        z: sp.Symbol,
+        z: sp.Symbol = None,
         ax: Optional[plt.Axes] = None,
         x_range: tuple[float, float] = (-1, 1),
         y_range: tuple[float, float] = (-1, 1),
         density: int = 25,
         colormap: str = "plasma",
+        add_colorbar: bool = False,
         quiver_kwargs: dict = None
 ) -> None:
     """
@@ -76,7 +77,9 @@ def vectorplot(
     :param quiver_kwargs: parameters for plt.quiver.
     """
     if ax is None:
-        ax = plt.gca()
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
 
     X, Y = grid(x_range, y_range, density)
     Z = X + Y * 1j
@@ -99,18 +102,22 @@ def vectorplot(
             alpha=0.8
         )
 
-    ax.quiver(X, Y, U, V, magnitude, cmap=colormap, **quiver_kwargs)
+    q = ax.quiver(X, Y, U, V, magnitude, cmap=colormap, **quiver_kwargs)
+
+    if add_colorbar:
+        fig.colorbar(q, ax=ax)
 
 
 def streamplot(
         f_expr: sp.Expr | Callable[[np.ndarray], np.ndarray],
-        z: sp.Symbol,
+        z: sp.Symbol = None,
         ax: Optional[plt.Axes] = None,
         x_range: tuple[float, float] = (-1, 1),
         y_range: tuple[float, float] = (-1, 1),
         density: int = 25,
         streamline_density: tuple[int, int] | int = (2, 2),
         colormap: str = "plasma",
+        add_colorbar: bool = False,
         streamplot_kwargs: dict = None
 ) -> None:
     """
@@ -127,7 +134,9 @@ def streamplot(
     :param streamplot_kwargs: parameters for plt.streamplot.
     """
     if ax is None:
-        ax = plt.gca()
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.figure
 
     X, Y = grid(x_range, y_range, density)
     Z = X + Y * 1j
@@ -146,6 +155,12 @@ def streamplot(
         )
 
     ax.streamplot(X, Y, u, v, color=magnitude, cmap=colormap, density=streamline_density, **streamplot_kwargs)
+
+    if add_colorbar:
+        import matplotlib.cm as cm
+        sm = cm.ScalarMappable(cmap=colormap)
+        sm.set_array(magnitude)
+        fig.colorbar(sm, ax=ax)
 
 
 def zeros(
@@ -247,7 +262,7 @@ def poles(
 
 def grid_deformation(
         f_expr : sp.Expr | Callable[[np.ndarray], np.ndarray],
-        z : sp.Symbol,
+        z : sp.Symbol = None,
         ax: Optional[plt.Axes] = None,
         x_range: tuple[float, float] = (-1, 1),
         y_range: tuple[float, float] = (-1, 1),
@@ -269,7 +284,7 @@ def grid_deformation(
     X, Y = grid(x_range, y_range, density)
     Z = X + Y * 1j
 
-    func = sp.lambdify(z, f_expr)
+    func = get_func(f_expr, z)
     result = func(Z)
 
     u, v = result.real, -result.imag

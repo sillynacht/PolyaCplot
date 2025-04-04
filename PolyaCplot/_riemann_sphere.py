@@ -68,7 +68,7 @@ def compute_tangent_vectors(z, u, v, projection='north'):
     denom = 1 + X ** 2 + Y ** 2
 
     if projection == 'north':
-        # Стандартная стереографическая проекция (из северного полюса)
+        # Стандартная стереографическая проекция
         dXdx = 2 / denom - 4 * X ** 2 / denom ** 2
         dXdy = -4 * X * Y / denom ** 2
         dYdx = -4 * X * Y / denom ** 2
@@ -106,18 +106,18 @@ def riemann_vectorplot(
     :param colormap: Color of the vector plot, default is "plasma".
     :param max_magnitude: Maximum magnitude of the vector field, default is 1000.
     """
-    X, Y = pc.gridForImage(x_range=(-1, 1), y_range=(-1, 1), density=density)
+    X, Y = pc.grid(x_range=(-1, 1), y_range=(-1, 1), density=density)
     Z = X + 1j * Y
 
     mask_south = np.abs(Z) <= 1 + 1e-3
     Z_filtered = Z[mask_south]
 
-    f = pc.getFunc(f_expr, z)
+    f = pc.get_func(f_expr, z)
     result = f(Z_filtered)
 
     U = np.real(result)
     V = -np.imag(result)
-    magnitude = np.sqrt(U**2 + V**2)
+    magnitude = np.sqrt(U ** 2 + V ** 2)
 
     magnitude = np.clip(magnitude, None, max_magnitude)
 
@@ -133,19 +133,19 @@ def riemann_vectorplot(
 
     # ====================================================================================
 
-    W1, W2 = pc.gridForImage(x_range=(-1, 1), y_range=(-1, 1), density=density)
+    W1, W2 = pc.grid(x_range=(-1, 1), y_range=(-1, 1), density=density)
     w = W1 + 1j * W2
 
     mask_north = np.abs(w) <= 1 + 1e-3
     w_filtered = w[mask_north]
 
-    g = pc.getFunc(f_expr, z)
+    g = pc.get_func(f_expr, z)
     result_w = g(1 / w_filtered)
 
     result_w = (-1 / (w_filtered**2)) * result_w
     U_w = np.real(result_w)
     V_w = -np.imag(result_w)
-    magnitude_w = np.sqrt(U_w**2 + V_w**2)
+    magnitude_w = np.sqrt(U_w ** 2 + V_w ** 2)
 
     magnitude_w = np.clip(magnitude_w, None, max_magnitude)
 
@@ -178,103 +178,3 @@ def riemann_vectorplot(
 
     p.add_mesh(arrows, scalars="magnitude", cmap=colormap, lighting=True)
     p.show()
-
-
-# def riemann_streamplot(
-#         f_expr: sp.Expr | Callable[[np.ndarray], np.ndarray],
-#         z_sym,
-#         density: int = 40,
-#         colormap: str = "plasma",
-#         R_split: float = 1.0,
-#         max_magnitude: float = 1000.0,
-#         n_seed: int = 100
-# ):
-#     X, Y = pc.gridForImage(x_range=(-1, 1), y_range=(-1, 1), density=density)
-#     Z = X + 1j * Y
-
-#     mask_south = np.abs(Z) <= 1
-#     Z_filtered = Z[mask_south]
-
-#     if callable(f_expr):
-#         result = f_expr(Z_filtered)
-#     else:
-#         result = sp.lambdify(z_sym, f_expr, "numpy")(Z_filtered)
-
-#     U = np.real(result)
-#     V = -np.imag(result)
-#     magnitude = np.sqrt(U**2 + V**2)
-
-#     magnitude = np.clip(magnitude, None, max_magnitude)
-
-#     u = U / (magnitude + 1e-7)
-#     v = V / (magnitude + 1e-7)
-
-#     sx, sy, sz = stereographic_projection_from_north(Z_filtered)
-#     pts_south = np.vstack([sx.flatten(), sy.flatten(), sz.flatten()]).T
-
-#     dX_s, dY_s, dZ_s = compute_tangent_vectors(Z_filtered, u, v, projection='north')
-#     vecs_south = np.vstack([dX_s.flatten(), dY_s.flatten(), dZ_s.flatten()]).T
-#     mags_south = magnitude.flatten()
-
-#     # ====================================================================================
-
-#     W1, W2 = pc.gridForImage(x_range=(-1, 1), y_range=(-1, 1), density=density)
-#     w = W1 + 1j * W2
-
-#     mask_north = np.abs(w) <= 1
-#     w_filtered = w[mask_north]
-
-#     if callable(f_expr):
-#         result_w = f_expr(1 / w_filtered)
-#     else:
-#         result_w = sp.lambdify(z_sym, f_expr, "numpy")(1 / w_filtered)
-
-#     result_w = (-1 / (w_filtered**2)) * result_w
-#     U_w = np.real(result_w)
-#     V_w = -np.imag(result_w)
-#     magnitude_w = np.sqrt(U_w**2 + V_w**2)
-
-#     magnitude_w = np.clip(magnitude_w, None, max_magnitude)
-
-#     u_w = U_w / (magnitude_w + 1e-7)
-#     v_w = V_w / (magnitude_w + 1e-7)
-
-#     sx_w, sy_w, sz_w = stereographic_projection_from_south(w_filtered)
-#     pts_north = np.vstack([sx_w.flatten(), sy_w.flatten(), sz_w.flatten()]).T
-
-#     dX_w, dY_w, dZ_w = compute_tangent_vectors(w_filtered, u_w, v_w, projection='south')
-#     vecs_north = np.vstack([dX_w.flatten(), dY_w.flatten(), dZ_w.flatten()]).T
-#     mags_north = magnitude_w.flatten()
-
-#     # ====================================================================================
-
-#     pts_all = np.vstack([pts_south, pts_north])
-#     vecs_all = np.vstack([vecs_south, vecs_north])
-#     mags_all = np.hstack([mags_south, mags_north])
-
-#     grid = pv.PolyData(pts_all)
-#     grid["vectors"] = vecs_all
-#     grid["magnitude"] = mags_all
-
-#     seed_idx = np.linspace(0, pts_all.shape[0] - 1, n_seed, dtype=int)
-#     seed_pts = pts_all[seed_idx]
-#     seed = pv.PolyData(seed_pts)
-
-#     streamlines = grid.streamlines_from_source(
-#         source=seed,
-#         vectors="vectors",
-#         integrator_type=45,
-#         integration_direction="both",
-#         max_steps=1000,
-#         step_unit='cl',
-#         progress_bar=True
-#     )
-
-#     p = pv.Plotter()
-
-#     sphere = pv.Sphere(radius=1.0, theta_resolution=50, phi_resolution=50)
-#     p.add_mesh(sphere, color="lightgrey", opacity=0.5)
-
-#     p.add_mesh(streamlines, color='blue')
-
-#     p.show()
